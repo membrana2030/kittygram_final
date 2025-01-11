@@ -1,18 +1,22 @@
+# backend/api/tests.py
 from http import HTTPStatus
 
-from django.contrib.auth import get_user_model
-from django.test import TestCase
-from rest_framework.test import APIClient
+from api import models
+from django.test import Client, TestCase
 
 
-class CatsAPITestCase(TestCase):
+class TaskiAPITestCase(TestCase):
     def setUp(self):
-        User = get_user_model()
-        self.user = User.objects.create_user(username='auth_user')
-        self.client = APIClient()
-        self.client.force_authenticate(user=self.user)
+        self.guest_client = Client()
 
     def test_list_exists(self):
         """Проверка доступности списка задач."""
-        response = self.client.get('/api/cats/')
+        response = self.guest_client.get('/api/tasks/')
         self.assertEqual(response.status_code, HTTPStatus.OK)
+
+    def test_task_creation(self):
+        """Проверка создания задачи."""
+        data = {'title': 'Test', 'description': 'Test'}
+        response = self.guest_client.post('/api/tasks/', data=data)
+        self.assertEqual(response.status_code, HTTPStatus.CREATED)
+        self.assertTrue(models.Task.objects.filter(title='Test').exists())

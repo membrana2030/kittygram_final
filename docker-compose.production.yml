@@ -1,36 +1,28 @@
 volumes:
-  pg_data:
-  static:
-  media:
+  pg_data_production:
+  static_volume:
 
 services:
-  db:
-    image: postgres:13
+  db_kitty:
+    image: postgres:13.10
     env_file: .env
     volumes:
-      - pg_data:/var/lib/postgresql/data
+      - pg_data_production:/var/lib/postgresql/data
   backend:
-    image: membranaa/kittygram_backend
+    image: membranaa/kitty_backend
     env_file: .env
     volumes:
-      - static:/backend_static/
-      - media:/media/
-    depends_on:
-      - db
+      - static_volume:/backend_static
   frontend:
-    image: membranaa/kittygram_frontend
+    image: membranaa/kitty_frontend
     env_file: .env
-    command: cp -r /app/build/. /static/
+    command: cp -r /app/build/. /frontend_static/
     volumes:
-      - static:/static/
+      - static_volume:/frontend_static
   gateway:
-    image: membranaa/kittygram_gateway
+    image: membranaa/kitty_nginx
     env_file: .env
-    ports:
-      - 9000:80
     volumes:
-      - static:/static/
-      - media:/media/
-    depends_on:
-      - backend
-      - frontend
+      - static_volume:/staticfiles/
+    ports:
+      - 8000:80
