@@ -129,28 +129,17 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     needs: 
+      # Дождёмся билда всех образов 
       - build_and_push_to_docker_hub
       - build_frontend_and_push_to_docker_hub
       - build_gateway_and_push_to_docker_hub
     steps:
     - name: Checkout repo
       uses: actions/checkout@v3
-
-    - name: Cleanup server
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.HOST }}
-        username: ${{ secrets.USER }}
-        key: ${{ secrets.SSH_KEY }}
-        passphrase: ${{ secrets.SSH_PASSPHRASE }}
-        script: |
-          npm cache clean --force
-          sudo apt clean
-          sudo journalctl --vacuum-time=1d
-          sudo docker system prune -af
-
+    # Копируем docker-compose.production.yml на продакшен-сервер
     - name: Copy docker-compose.yml via ssh
       uses: appleboy/scp-action@master
+    # Передаём параметры для action appleboy/scp-action:
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USER }}
@@ -158,7 +147,6 @@ jobs:
         passphrase: ${{ secrets.SSH_PASSPHRASE }}
         source: "docker-compose.production.yml"
         target: "kittygram"
-
     - name: Executing remote ssh commands to deploy
       uses: appleboy/ssh-action@master
       with:
@@ -170,28 +158,17 @@ jobs:
           cd kittygram
           sudo docker compose -f docker-compose.production.yml pull
           sudo docker compose -f docker-compose.production.yml down
-          sudo docker compose -f docker-compose.production.yml up -d | tee deploy_log.txt
+          sudo docker compose -f docker-compose.production.yml up -d
           sudo docker compose -f docker-compose.production.yml exec backend python manage.py migrate
-          sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic --no-input
+          sudo docker compose -f docker-compose.production.yml exec backend python manage.py collectstatic
           sudo docker compose -f docker-compose.production.yml exec backend cp -r /app/collected_static/. /backend_static/static/
-          sudo systemctl restart nginx
-
   send_message:
     runs-on: ubuntu-latest
     needs: deploy
     steps:
-    - name: Send success message
+    - name: Send message
       uses: appleboy/telegram-action@master
       with:
         to: ${{ secrets.TELEGRAM_TO }}
         token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: Деплой успешно выполнен! ✅
-
-    - name: Send failure message on error
-      if: failure()
-      uses: appleboy/telegram-action@master
-      with:
-        to: ${{ secrets.TELEGRAM_TO }}
-        token: ${{ secrets.TELEGRAM_TOKEN }}
-        message: Деплой не удался! Проверь логи.
-  
+        message: Деплой успешно выполнен! 
