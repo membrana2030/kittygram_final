@@ -10,7 +10,7 @@ services:
     volumes:
       - pg_data_production:/var/lib/postgresql/data
   backend:
-    image: membranaa/kitty_backend
+    image: membranaa/kittygram_backend
     env_file: .env
     volumes:
       - static_volume:/backend_static
@@ -18,13 +18,13 @@ services:
     depends_on:
       - db_kitty
   frontend:
-    image: membranaa/kitty_frontend
+    image: membranaa/kittygram_frontend
     env_file: .env
     command: cp -r /app/build/. /frontend_static/
     volumes:
       - static_volume:/frontend_static
   gateway:
-    image: membranaa/kitty_nginx
+    image: membranaa/kittygram_gateway
     env_file: .env
     volumes:
       - static_volume:/staticfiles/
